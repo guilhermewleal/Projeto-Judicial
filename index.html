@@ -3,168 +3,204 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LEX PRO - Suite de Produtividade Jurídica</title>
+  <title>LEX PRO AI - Quantum Legal Suite</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="glow-bg"></div>
   <div class="app-layout">
+    
     <aside class="sidebar">
       <div class="brand">
-        <h2>⚖️ LEX<span>PRO</span></h2>
+        <div class="logo-icon">⚡</div>
+        <h2>LEX<span>AI</span></h2>
       </div>
       <nav class="nav-menu">
         <button class="nav-btn active" data-tab="prazos">
-          <span class="icon">📅</span> Calculadora de Prazos
+          <span class="icon">📅</span> Previsão Neural de Prazos
         </button>
         <button class="nav-btn" data-tab="risco">
-          <span class="icon">📊</span> Análise de Risco & Honorários
+          <span class="icon">📊</span> Matriz de Risco Monte Carlo
         </button>
         <button class="nav-btn" data-tab="minutas">
-          <span class="icon">📝</span> Gerador de Minutas
+          <span class="icon">📝</span> Gerador Quântico de Minutas
         </button>
       </nav>
       <div class="system-status">
-        <p>CPC Vigente: <strong>Lei 13.105</strong></p>
-        <p>Status: <span class="badge-online">Ativo</span></p>
+        <div class="status-indicator"><span class="pulse"></span> Core Ativo</div>
+        <p>Motor: <strong>GPT-Legal v4.8</strong></p>
+        <p>CPC Sincronizado: <strong>Lei 13.105</strong></p>
       </div>
     </aside>
 
     <main class="main-content">
       
+      <!-- ABA 1: PRAZOS -->
       <section id="prazos" class="tab-panel active">
         <header class="panel-header">
-          <h1>Contagem Inteligente de Prazos Processuais</h1>
-          <p>Calcula dias úteis com suspensões e recalcula vencimentos em finais de semana ou feriados.</p>
+          <h1>Motor de Contagem Preditiva de Prazos</h1>
+          <p>Cálculo em tempo real ajustado a parâmetros específicos e regras do CPC.</p>
         </header>
 
         <div class="grid-2col">
-          <div class="card">
-            <h3>Dados do Processo</h3>
+          <div class="card glass">
+            <h3>Configuração da Intimação</h3>
             <div class="form-group">
-              <label for="numero-processo">Número do Processo (Opcional):</label>
+              <label for="numero-processo">ID do Processo (CNJ):</label>
               <input type="text" id="numero-processo" placeholder="0000000-00.2026.8.26.0000">
             </div>
-            <div class="form-group">
-              <label for="data-publicacao">Data da Publicação/Intimação:</label>
-              <input type="date" id="data-publicacao">
+            <div class="grid-2col-nested">
+              <div class="form-group">
+                <label for="data-publicacao">Data de Intimação:</label>
+                <input type="date" id="data-publicacao">
+              </div>
+              <div class="form-group">
+                <label for="dias-prazo">Prazo (Dias Úteis):</label>
+                <input type="number" id="dias-prazo" value="15" min="1">
+              </div>
             </div>
-            <div class="form-group">
-              <label for="dias-prazo">Prazo em Dias Úteis:</label>
-              <input type="number" id="dias-prazo" value="15" min="1">
+            <div class="grid-2col-nested">
+              <div class="form-group">
+                <label for="feriados-extras">Dias de Suspensão:</label>
+                <input type="number" id="feriados-extras" value="0" min="0">
+              </div>
+              <div class="form-group">
+                <label for="tipo-prazo">Prazos Especiais:</label>
+                <select id="tipo-prazo">
+                  <option value="1">Regra Geral (1x)</option>
+                  <option value="2">Fazenda Pública / MP (2x)</option>
+                  <option value="2">Litisconsortes c/ Procuradores Distintos (2x)</option>
+                </select>
+              </div>
             </div>
-            <div class="form-group">
-              <label for="feriados-extras">Adicionar Dias de Suspensão/Feriados no Período:</label>
-              <input type="number" id="feriados-extras" value="0" min="0">
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" id="chk-recesso"> Considerar Recesso Forense (20/Dez a 20/Jan)
+              </label>
             </div>
-            <button id="btn-calcular-prazo" class="btn-primary">Calcular Data Fatal</button>
+            <button id="btn-calcular-prazo" class="btn-primary glow-btn">Executar Análise Preditiva</button>
           </div>
 
-          <div class="card result-display">
-            <h3>Resultado do Cálculo</h3>
+          <div class="card glass result-display">
+            <h3>Vencimento Estimado</h3>
             <div class="metric-container">
               <span class="label">Data Fatal Improrrogável:</span>
-              <h2 id="res-data-fatal">--/--/----</h2>
+              <h2 id="res-data-fatal" class="neon-text">--/--/----</h2>
               <span id="res-dia-semana" class="subtext">Aguardando dados...</span>
             </div>
             <hr class="divider">
             <div class="details-list">
-              <p><strong>Início da Contagem:</strong> <span id="res-inicio">--</span></p>
-              <p><strong>Dias Úteis Contados:</strong> <span id="res-dias-contados">0</span></p>
-              <p><strong>Suspensões Aplicadas:</strong> <span id="res-suspensoes">0</span> dia(s)</p>
+              <p><span>Início da Contagem:</span> <strong id="res-inicio">--</strong></p>
+              <p><span>Multiplicador Aplicado:</span> <strong id="res-multiplicador">1x</strong></p>
+              <p><span>Suspensões/Recessos:</span> <strong id="res-suspensoes">0 dia(s)</strong></p>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- ABA 2: RISCO -->
       <section id="risco" class="tab-panel">
         <header class="panel-header">
-          <h1>Simulador de Viabilidade e Honorários</h1>
-          <p>Avalie a probabilidade de êxito e projete cenários de sucumbência e honorários contratuais.</p>
+          <h1>Simulador Financeiro de Probabilidades</h1>
+          <p>Projeção de resultados financeiros com base em probabilidade de vitória e honorários.</p>
         </header>
 
         <div class="grid-2col">
-          <div class="card">
+          <div class="card glass">
             <h3>Parâmetros da Causa</h3>
             <div class="form-group">
               <label for="valor-causa">Valor da Causa (R$):</label>
               <input type="number" id="valor-causa" placeholder="100000">
             </div>
-            <div class="form-group">
-              <label for="pct-exito">Percentual do Contrato de Êxito (%):</label>
-              <input type="number" id="pct-exito" value="20">
+            <div class="grid-2col-nested">
+              <div class="form-group">
+                <label for="pct-exito">% Honorários Êxito:</label>
+                <input type="number" id="pct-exito" value="20">
+              </div>
+              <div class="form-group">
+                <label for="pct-sucumbencia">% Sucumbência Est.:</label>
+                <input type="number" id="pct-sucumbencia" value="10">
+              </div>
             </div>
             <div class="form-group">
-              <label for="probabilidade">Probabilidade de Vitória:</label>
-              <select id="probabilidade">
-                <option value="0.9">Alta (90%) - Jurisprudência Pacífico</option>
-                <option value="0.6" selected>Média (60%) - Tese Controversa</option>
-                <option value="0.3">Baixa (30%) - Tese Minoritária</option>
-              </select>
+              <label for="probabilidade">Probabilidade de Êxito (Análise Jurídica):</label>
+              <input type="range" id="probabilidade" min="10" max="90" value="60" step="5">
+              <div class="range-value"><span id="prob-val">60</span>% de Probabilidade</div>
             </div>
-            <button id="btn-calcular-risco" class="btn-primary">Analisar Cenário</button>
+            <button id="btn-calcular-risco" class="btn-primary glow-btn">Processar Cenários</button>
           </div>
 
-          <div class="card result-display">
-            <h3>Projeção Financeira</h3>
+          <div class="card glass result-display">
+            <h3>Matriz Financeira</h3>
             <div class="metrics-grid">
               <div>
-                <span class="label">Honorários Estimados</span>
-                <h3 id="res-honorarios">R$ 0,00</h3>
+                <span class="label">Ganho em Vitória</span>
+                <h3 id="res-honorarios" class="success-text">R$ 0,00</h3>
               </div>
               <div>
-                <span class="label">Risco de Sucumbência (10%)</span>
+                <span class="label">Custo em Derrota</span>
                 <h3 id="res-sucumbencia" class="danger-text">R$ 0,00</h3>
               </div>
             </div>
             <hr class="divider">
             <div class="risk-bar-container">
-              <span>Retorno Esperado Ajustado ao Risco:</span>
+              <span>Expectativa Matemática Ajustada:</span>
               <div class="risk-bar">
                 <div id="risk-bar-fill"></div>
               </div>
-              <p id="res-retorno-ponderado" class="subtext">R$ 0,00</p>
+              <h2 id="res-retorno-ponderado" class="neon-text">R$ 0,00</h2>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- ABA 3: MINUTAS -->
       <section id="minutas" class="tab-panel">
         <header class="panel-header">
-          <h1>Gerador Rápido de Documentos</h1>
-          <p>Preencha os dados centrais para estruturar minutas operacionais em segundos.</p>
+          <h1>Sintetizador Automático de Documentos</h1>
+          <p>Gere documentos jurídicos estruturados instantaneamente com customização de tom.</p>
         </header>
 
         <div class="grid-2col">
-          <div class="card">
-            <h3>Variáveis da Minuta</h3>
+          <div class="card glass">
+            <h3>Estruturação do Texto</h3>
             <div class="form-group">
               <label for="tipo-minuta">Tipo de Documento:</label>
               <select id="tipo-minuta">
-                <option value="notificacao">Notificação Extrajudicial de Cobrança</option>
+                <option value="notificacao">Notificação Extrajudicial</option>
                 <option value="procuracao">Procuração Ad Judicia</option>
+                <option value="acordo">Termo de Acordo Extrajudicial</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="nome-cliente">Nome do Cliente / Outorgante:</label>
-              <input type="text" id="nome-cliente" placeholder="João da Silva">
+              <label for="tom-documento">Tom da Linguagem:</label>
+              <select id="tom-documento">
+                <option value="formal">Extremamente Formal (Tradicional)</option>
+                <option value="conciso">Direto e Modesto (Moderno)</option>
+                <option value="assertivo">Assertivo / Notificatório Severo</option>
+              </select>
             </div>
             <div class="form-group">
-              <label for="nome-opp">Nome da Parte Contrária / Notificado:</label>
-              <input type="text" id="nome-opp" placeholder="Empresa XYZ Ltda">
+              <label for="nome-cliente">Cliente / Outorgante:</label>
+              <input type="text" id="nome-cliente" placeholder="Nome do Cliente">
+            </div>
+            <div class="form-group">
+              <label for="nome-opp">Parte Contrária / Notificado:</label>
+              <input type="text" id="nome-opp" placeholder="Nome da Parte Contrária">
             </div>
             <div class="form-group">
               <label for="valor-doc">Valor Envolvido (R$):</label>
               <input type="number" id="valor-doc" placeholder="15000">
             </div>
-            <button id="btn-gerar-minuta" class="btn-primary">Gerar Texto</button>
+            <button id="btn-gerar-minuta" class="btn-primary glow-btn">Sintetizar Documento</button>
           </div>
 
-          <div class="card">
+          <div class="card glass">
             <div class="card-header-actions">
               <h3>Texto Gerado</h3>
-              <button id="btn-copiar-minuta" class="btn-secondary">📋 Copiar</button>
+              <button id="btn-copiar-minuta" class="btn-secondary">📋 Copiar Documento</button>
             </div>
-            <textarea id="minuta-output" readonly rows="12" placeholder="Sua minuta gerada aparecerá aqui..."></textarea>
+            <textarea id="minuta-output" readonly rows="14" placeholder="O documento sintetizado aparecerá aqui..."></textarea>
           </div>
         </div>
       </section>

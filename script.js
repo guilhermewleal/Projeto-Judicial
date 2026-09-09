@@ -12,10 +12,12 @@ navButtons.forEach(btn => {
   });
 });
 
-// --- ENGINE 1: CALCULADORA DE PRAZOS PROCESSUAIS (CPC) ---
+// --- ENGINE 1: PREVISÃO DE PRAZOS PROCESSUAIS ---
 const inputPublicacao = document.getElementById('data-publicacao');
 const inputDias = document.getElementById('dias-prazo');
 const inputFeriados = document.getElementById('feriados-extras');
+const selectTipoPrazo = document.getElementById('tipo-prazo');
+const chkRecesso = document.getElementById('chk-recesso');
 const btnCalcularPrazo = document.getElementById('btn-calcular-prazo');
 
 // Definir data padrão como hoje
@@ -23,39 +25,47 @@ inputPublicacao.valueAsDate = new Date();
 
 btnCalcularPrazo.addEventListener('click', () => {
   const dataVal = inputPublicacao.value;
-  const diasUteis = parseInt(inputDias.value);
+  let diasUteis = parseInt(inputDias.value);
   const feriadosExtras = parseInt(inputFeriados.value) || 0;
+  const multiplicador = parseInt(selectTipoPrazo.value) || 1;
+  const considerarRecesso = chkRecesso.checked;
 
   if (!dataVal || isNaN(diasUteis) || diasUteis <= 0) {
-    alert('Preencha os campos de data e dias corretamente.');
+    alert('Insira uma data e quantidade de dias válidos.');
     return;
   }
+
+  // Aplica o multiplicador de prazo (ex: 2x para Fazenda Pública)
+  diasUteis = diasUteis * multiplicador;
 
   const [ano, mes, dia] = dataVal.split('-').map(Number);
   let dataAtual = new Date(ano, mes - 1, dia);
 
-  // O primeiro dia do prazo é o dia ÚTIL SEGUINTE à publicação
+  // Primeiro dia útil após a publicação
   let inicioContagem = proximoDiaUtil(new Date(dataAtual));
-  
   let dataCorrente = new Date(inicioContagem);
+  
   let diasContados = 0;
+  let diasAdicionaisAplicados = feriadosExtras;
 
-  // Adiciona a lógica de suspensão/feriados extras no meio do fluxo
-  let diasParaSomar = diasUteis + feriadosExtras;
+  while (diasContados < (diasUteis + diasAdicionaisAplicados)) {
+    // Checa Recesso Forense (20/Dez a 20/Jan) se habilitado
+    if (considerarRecesso && ehRecessoForense(dataCorrente)) {
+      dataCorrente.setDate(dataCorrente.getDate() + 1);
+      continue;
+    }
 
-  while (diasContados < diasParaSomar) {
     const diaSemana = dataCorrente.getDay();
-    // 0 = Domingo, 6 = Sábado
+    // Verifica dia útil (1 a 5)
     if (diaSemana !== 0 && diaSemana !== 6) {
       diasContados++;
     }
     
-    if (diasContados < diasParaSomar) {
+    if (diasContados < (diasUteis + diasAdicionaisAplicados)) {
       dataCorrente.setDate(dataCorrente.getDate() + 1);
     }
   }
 
-  // Se a data final cair em fim de semana por exceção, prorroga para o próximo dia útil
   dataCorrente = proximoDiaUtil(dataCorrente);
 
   // Exibição dos Resultados
@@ -63,65 +73,84 @@ btnCalcularPrazo.addEventListener('click', () => {
   document.getElementById('res-data-fatal').textContent = dataCorrente.toLocaleDateString('pt-BR');
   document.getElementById('res-dia-semana').textContent = dataCorrente.toLocaleDateString('pt-BR', opcoesData);
   document.getElementById('res-inicio').textContent = inicioContagem.toLocaleDateString('pt-BR');
-  document.getElementById('res-dias-contados').textContent = diasUteis;
-  document.getElementById('res-suspensoes').textContent = feriadosExtras;
+  document.getElementById('res-multiplicador').textContent = `${multiplicador}x (${diasUteis} dias total)`;
+  document.getElementById('res-suspensoes').textContent = `${feriadosExtras} dia(s)`;
 });
 
 function proximoDiaUtil(data) {
   let novaData = new Date(data);
-  // Se for publicação/evento hoje, avança pro dia seguinte antes de testar
   novaData.setDate(novaData.getDate() + 1);
-  
   while (novaData.getDay() === 0 || novaData.getDay() === 6) {
     novaData.setDate(novaData.getDate() + 1);
   }
   return novaData;
 }
 
-// --- ENGINE 2: ANÁLISE DE RISCO & HONORÁRIOS ---
+function ehRecessoForense(data) {
+  const mes = data.getMonth(); // 0-indexado (11 = Dez, 0 = Jan)
+  const dia = data.getDate();
+  if ((mes === 11 && dia >= 20) || (mes === 0 && dia <= 20)) {
+    return true;
+  }
+  return false;
+}
+
+// --- ENGINE 2: MATRIZ DE RISCO & SIMULAÇÃO ---
 const inputValorCausa = document.getElementById('valor-causa');
 const inputPctExito = document.getElementById('pct-exito');
-const selectProbabilidade = document.getElementById('probabilidade');
+const inputPctSucumbencia = document.getElementById('pct-sucumbencia');
+const sliderProbabilidade = document.getElementById('probabilidade');
+const probValDisplay = document.getElementById('prob-val');
 const btnCalcularRisco = document.getElementById('btn-calcular-risco');
+
+// Atualiza indicador de porcentagem dinamicamente
+sliderProbabilidade.addEventListener('input', (e) => {
+  probValDisplay.textContent = e.target.value;
+});
 
 btnCalcularRisco.addEventListener('click', () => {
   const valor = parseFloat(inputValorCausa.value);
-  const pct = parseFloat(inputPctExito.value);
-  const prob = parseFloat(selectProbabilidade.value);
+  const pctExito = parseFloat(inputPctExito.value);
+  const pctSucumb = parseFloat(inputPctSucumbencia.value);
+  const prob = parseFloat(sliderProbabilidade.value) / 100;
 
-  if (isNaN(valor) || valor <= 0 || isNaN(pct)) {
-    alert('Insira um valor de causa e percentual válidos.');
+  if (isNaN(valor) || valor <= 0) {
+    alert('Informe o valor da causa para realizar os cálculos.');
     return;
   }
 
-  const honorariosEstimados = valor * (pct / 100);
-  const riscoSucumbencia = valor * 0.10; // Média padrão de 10% de sucumbência
-  const retornoPonderado = (honorariosEstimados * prob) - (riscoSucumbencia * (1 - prob));
+  const honorariosVitoria = valor * (pctExito / 100);
+  const riscoDerrota = valor * (pctSucumb / 100);
+  
+  // Modelo de Expectativa Matemática: E = (Ganho * P(Vitória)) - (Custo * P(Derrota))
+  const retornoPonderado = (honorariosVitoria * prob) - (riscoDerrota * (1 - prob));
 
-  // Atualiza UI
-  document.getElementById('res-honorarios').textContent = formatarMoeda(honorariosEstimados);
-  document.getElementById('res-sucumbencia').textContent = formatarMoeda(riscoSucumbencia);
+  document.getElementById('res-honorarios').textContent = formatarMoeda(honorariosVitoria);
+  document.getElementById('res-sucumbencia').textContent = formatarMoeda(riscoSucumbencia(riscoDerrota));
+  document.getElementById('res-retorno-ponderado').textContent = formatarMoeda(retornoPonderado);
   
   const fillBar = document.getElementById('risk-bar-fill');
   fillBar.style.width = `${prob * 100}%`;
-
-  const elRetorno = document.getElementById('res-retorno-ponderado');
-  elRetorno.textContent = `Expectativa Matemática Liquida: ${formatarMoeda(retornoPonderado)}`;
 });
+
+function riscoSucumbencia(val) {
+  return val;
+}
 
 function formatarMoeda(val) {
   return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// --- ENGINE 3: GERADOR DE MINUTAS ---
+// --- ENGINE 3: SINTETIZADOR DE MINUTAS AUTOMÁTICO ---
 const btnGerarMinuta = document.getElementById('btn-gerar-minuta');
 const btnCopiarMinuta = document.getElementById('btn-copiar-minuta');
 const minutaOutput = document.getElementById('minuta-output');
 
 btnGerarMinuta.addEventListener('click', () => {
   const tipo = document.getElementById('tipo-minuta').value;
+  const tom = document.getElementById('tom-documento').value;
   const cliente = document.getElementById('nome-cliente').value || '[ NOME DO CLIENTE ]';
-  const oposicao = document.getElementById('nome-opp').value || '[ NOME DA PARTE CONTRÁRIA ]';
+  const oposicao = document.getElementById('nome-opp').value || '[ PARTE CONTRÁRIA ]';
   const valor = parseFloat(document.getElementById('valor-doc').value) || 0;
 
   const valorFormatado = formatarMoeda(valor);
@@ -130,32 +159,17 @@ btnGerarMinuta.addEventListener('click', () => {
   let texto = '';
 
   if (tipo === 'notificacao') {
-    texto = `NOTIFICAÇÃO EXTRAJUDICIAL DE COBRANÇA
-
-Ao(À) ${oposicao}
-
-A pedido de nosso constituinte, ${cliente}, vimos por meio desta NOTIFICAR V. Sa. acerca do débito pendente no valor de ${valorFormatado}.
-
-Solicitamos o comparecimento ou contato no prazo impreterível de 5 (cinco) dias úteis para a regularização do referido valor, sob pena de adoção das medidas judiciais cabíveis, incluindo ação de execução e inclusão nos órgãos de proteção ao crédito.
-
-Atenciosamente,
-
-[CIDADE/UF], ${dataHoje}.
-__________________________________
-Advocacia / OAB`;
+    if (tom === 'formal') {
+      texto = `NOTIFICAÇÃO EXTRAJUDICIAL DE COBRANÇA\n\nÀ(Ao) ${oposicao}\n\nSirvo-me da presente para, na qualidade de patrono de ${cliente}, NOTIFICAR V. Sa. a proceder com o adimplemento da quantia de ${valorFormatado}.\n\nOutrossim, assinala-se o prazo de 5 (cinco) dias úteis para a devida quitação do montante, sob pena de imediata propositura das medidas judiciais coercitivas cabíveis.\n\n[CIDADE/UF], ${dataHoje}.\n__________________________________\nAdvocacia Regulamentada`;
+    } else if (tom === 'assertivo') {
+      texto = `NOTIFICAÇÃO FORMAL DE COBRANÇA IMPRETERÍVEL\n\nPARA: ${oposicao}\nREQUERENTE: ${cliente}\nVALOR DEVEDOR: ${valorFormatado}\n\nFica a parte notificada cientificada de que possui o prazo IMPORROGÁVEL de 5 (cinco) dias para quitar o débito informado. A ausência de manifestação ensejará a imediata inscrição em órgãos de proteção ao crédito e o ajuizamento de Ação Executiva.\n\nData: ${dataHoje}.\n__________________________________\nDepartamento Jurídico`;
+    } else {
+      texto = `NOTIFICAÇÃO EXTRAJUDICIAL\n\nPrezado(a) ${oposicao},\n\nSolicitamos em nome de ${cliente} a regularização do valor pendente de ${valorFormatado}.\n\nPedimos a gentileza de entrar em contato no prazo de 5 dias úteis para alinhamento da liquidação do débito.\n\nAtenciosamente,\nData: ${dataHoje}.\n__________________________________\nRepresentante Legal`;
+    }
   } else if (tipo === 'procuracao') {
-    texto = `PROCURAÇÃO AD JUDICIA ET EXTRA
-
-OUTORGANTE: ${cliente}, com qualificações completas anexas.
-
-OUTORGADO: [NOME DO ADVOGADO], inscrito na OAB sob o nº [000.000], com escritório profissional em [ENDEREÇO].
-
-PODERES: Pelo presente instrumento, o OUTORGANTE confere ao OUTORGADO amplos poderes para o foro em geral, conforme artigo 105 do Código de Processo Civil, referente à demanda envolvendo ${oposicao}, com valor estimado de ${valorFormatado}.
-
-[CIDADE/UF], ${dataHoje}.
-
-__________________________________
-${cliente}`;
+    texto = `PROCURAÇÃO AD JUDICIA ET EXTRA\n\nOUTORGANTE: ${cliente}, com qualificações registradas.\nOUTORGADO: Sociedade de Advogados / Representante Legal OAB.\n\nPODERES: Concedem-se amplos poderes para o foro em geral referentes à lide em face de ${oposicao}, com valor estimado em ${valorFormatado}.\n\n[CIDADE/UF], ${dataHoje}.\n\n__________________________________\n${cliente}`;
+  } else if (tipo === 'acordo') {
+    texto = `TERMO DE ACORDO EXTRAJUDICIAL\n\nPARTES:\n1. ${cliente} (Credor)\n2. ${oposicao} (Devedor)\n\nDO OBJETO: As partes ajustam expressamente a composição amigável do débito no valor total de ${valorFormatado}, pondo fim à controvérsia existente.\n\n[CIDADE/UF], ${dataHoje}.\n\n______________________          ______________________\n   Credor / Advo.                  Devedor / Advo.`;
   }
 
   minutaOutput.value = texto;
@@ -164,8 +178,8 @@ ${cliente}`;
 btnCopiarMinuta.addEventListener('click', () => {
   if (!minutaOutput.value) return;
   navigator.clipboard.writeText(minutaOutput.value);
-  btnCopiarMinuta.textContent = '✔ Copiado!';
+  btnCopiarMinuta.textContent = '✔ Copiado para a Área de Transferência';
   setTimeout(() => {
-    btnCopiarMinuta.textContent = '📋 Copiar';
-  }, 1500);
+    btnCopiarMinuta.textContent = '📋 Copiar Documento';
+  }, 1800);
 });

@@ -167,7 +167,7 @@ body {
 .panel-header h1 {
   font-size: 2rem;
   background: linear-gradient(90deg, #fff, var(--text-muted));
-  --webkit-background-clip: text;
+  -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 6px;
 }
